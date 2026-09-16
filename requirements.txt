@@ -1,0 +1,5 @@
+pyyaml==6.0.3
+requests==2.34.2
+google-genai>=1.0.0
+streamlit==1.62.0
+psycopg2-binary==2.9.12

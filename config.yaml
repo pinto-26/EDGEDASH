@@ -1,0 +1,190 @@
+# EdgeDash configuration — edit this file for your own profile.
+# All user-specific values live here; nothing is hardcoded in the source.
+
+# The job title you are targeting (used in search queries and scoring).
+target_role: "Data Analyst"
+
+# City used to filter job listings.
+target_city: "Bengaluru"
+
+# Keywords added to every search query alongside target_role.
+# Include your role title so the keyword filter stays on-topic when
+# the city filter is relaxed.
+keywords:
+  - "Data Analyst"
+  - "SQL"
+  - "Python"
+  - "Power BI"
+  - "data pipeline"
+  - "ETL"
+
+# Your current skill set. The GapAnalyzer compares this against job requirements.
+my_skills:
+  - "Python"
+  - "SQL"
+  - "pandas"
+  - "Excel"
+  - "data visualisation"
+  - "Jupyter"
+
+# Years of relevant work experience (used in fit scoring).
+experience_years: 2
+
+# Path to the SQLite database file, relative to the repo root.
+# Change this to an absolute path if you prefer.
+db_path: "edgedash.db"
+
+# Minimum fit score (0–100) for a listing to appear in the dashboard.
+min_fit_score: 60
+
+# Sources to enable. Each name must match a registered Source class.
+# Available: arbeitnow
+sources:
+  - arbeitnow
+
+# Set to true to use MockFetcher instead of real network sources.
+# Useful for offline development and testing.
+use_mock_fetcher: false
+
+# LLM provider: "gemini" or "ollama"
+# gemini: requires GEMINI_API_KEY in .env
+# ollama: local inference, no key required (must be running on localhost:11434)
+llm_provider: "gemini"
+
+# Model name for the selected provider.
+# gemini: "gemini-1.5-flash" (free tier), "gemini-1.5-pro"
+# ollama: "llama3", "mistral", etc. (whatever you have pulled)
+llm_model: "gemini-3.6-flash"
+
+# Maximum listings scored per cycle. Caps cost and rate-limit exposure.
+llm_batch_size: 25
+
+# Scoring weights — must sum to 1.0. Tune these to match your priorities.
+weight_skill_match:   0.45
+weight_seniority_fit: 0.25
+weight_location_fit:  0.15
+weight_recency:       0.15
+
+# Your target seniority level. Used in seniority_fit scoring.
+# Options: junior | mid | senior | lead
+target_seniority: "mid"
+
+# Maximum listings scored per cycle (rule 21 — caps LLM cost exposure).
+score_batch_size: 25
+
+# ---------------------------------------------------------------------------
+# Skill alias map — THIS IS YOURS TO EDIT.
+# Add entries as you see your own data in: python -m edgedash.skills --audit
+# Format: "raw string as it appears in extractions": "canonical form"
+# All keys and values are lowercased automatically.
+# Rule 23: no code ever auto-merges skills — only explicit entries here.
+# ---------------------------------------------------------------------------
+skill_aliases:
+  # Kubernetes variants
+  "k8s": "kubernetes"
+  "k8": "kubernetes"
+
+  # Node.js — kept separate from javascript (they are different skills)
+  "node": "node.js"
+  "nodejs": "node.js"
+  "node js": "node.js"
+
+  # PostgreSQL variants
+  "postgres": "postgresql"
+  "psql": "postgresql"
+  "pg": "postgresql"
+
+  # Google Cloud variants
+  "gcp": "google cloud platform"
+  "google cloud": "google cloud platform"
+
+  # Machine learning
+  "ml": "machine learning"
+
+  # CI/CD variants
+  "ci cd": "ci/cd"
+  "cicd": "ci/cd"
+  "ci-cd": "ci/cd"
+
+  # Python ecosystem
+  "py": "python"
+
+  # JavaScript variants
+  "js": "javascript"
+  "es6": "javascript"
+  "ecmascript": "javascript"
+
+  # TypeScript
+  "ts": "typescript"
+
+  # React
+  "reactjs": "react"
+  "react.js": "react"
+
+  # Data tools
+  "power bi": "power bi"          # keep as-is (already normalised)
+  "powerbi": "power bi"
+  "tableau desktop": "tableau"
+  "ms excel": "excel"
+  "microsoft excel": "excel"
+
+  # SQL variants
+  "mysql": "mysql"                # keep distinct
+  "mssql": "sql server"
+  "microsoft sql server": "sql server"
+  "t-sql": "sql server"
+
+  # Cloud providers
+  "aws": "aws"
+  "amazon web services": "aws"
+  "azure": "azure"
+  "microsoft azure": "azure"
+
+  # Version control
+  "git hub": "github"
+  "gitlab": "gitlab"
+
+  # Miscellaneous common collisions
+  "docker container": "docker"
+  "containers": "docker"
+  "rest api": "rest apis"
+  "restful api": "rest apis"
+  "restful apis": "rest apis"
+  "nosql": "nosql"
+  "no sql": "nosql"
+  "spark": "apache spark"
+  "pyspark": "apache spark"
+  "kafka": "apache kafka"
+  "airflow": "apache airflow"
+
+# Orchestration thresholds — the Orchestrator reads these, not the agents.
+# How many hours between fetches before the Fetcher is scheduled.
+fetch_interval_hours: 6
+
+# Hard caps passed to each agent as its stop condition.
+max_fetch_pages: 5
+max_fetch_listings: 200
+max_score_seconds: 300
+max_analyse_seconds: 60
+
+# ---------------------------------------------------------------------------
+# Verification thresholds (rule 39) — each threshold names the failure it catches.
+# ---------------------------------------------------------------------------
+
+# Score distribution — catch score inflation (model collapsed to one value).
+min_score_spread: 10       # CATCHES: all scores within 10 points of each other
+min_score_stdev: 5.0       # CATCHES: tight clustering that spread alone misses
+
+# Extraction sanity — catch a broken or hallucinating extractor.
+max_empty_extraction_pct: 20.0  # CATCHES: extractor silently returning no skills
+max_skills_per_listing: 20      # CATCHES: model dumping a sentence as a skill list
+
+# Gap analysis — catch a top-ranked gap computed from too little data.
+min_gap_sample: 3          # CATCHES: top gap ranked from fewer than 3 listings
+
+# Freshness — catch stale data reaching the dashboard.
+max_data_age_days: 3       # CATCHES: dashboard showing listings older than 3 days
+
+# Daily cap on natural language questions. Protects free-tier API quota.
+# On exceed the ask box is disabled for the rest of the day.
+daily_ask_limit: 200
