@@ -1,0 +1,70 @@
+# EdgeDash daily cycle — runs the fetch → score → gap analysis pipeline.
+#
+# Schedule:
+#   06:00 IST (Bengaluru, UTC+5:30) = 00:30 UTC
+#   Cron: minute=30, hour=0  → "30 0 * * *"
+#
+# Rule 48: DATABASE_URL and GEMINI_API_KEY are injected as environment
+#          variables from GitHub Secrets. They are NEVER echoed, printed,
+#          or exposed in any step output. No step runs `env` or `printenv`.
+#
+# Rule 49: This job only runs the cycle. It never starts Streamlit.
+#
+# Rule 51: Hard job timeout of 10 minutes. No automatic retry — rule 36
+#          caps retries inside the cycle itself.
+
+name: Daily Cycle
+
+on:
+  schedule:
+    - cron: "30 0 * * *"   # 00:30 UTC = 06:00 IST (Bengaluru, UTC+5:30)
+
+  workflow_dispatch:        # allows manual trigger from GitHub Actions UI
+
+jobs:
+  run-cycle:
+    name: Run EdgeDash Cycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10     # hard cap — rule 51
+
+    # No retry on failure — rule 36 handles retries inside the cycle.
+    # A workflow-level retry would multiply the per-cycle retry limit.
+
+    env:
+      # Secrets injected here. Never echoed in any step (rule 48).
+      DATABASE_URL:    ${{ secrets.DATABASE_URL }}
+      GEMINI_API_KEY:  ${{ secrets.GEMINI_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Migrate database
+        # Safe to run on every cycle — CREATE TABLE IF NOT EXISTS.
+        # Runs before the cycle so a fresh Postgres DB is always ready.
+        run: python -m edgedash.storage --migrate
+
+      - name: Run cycle
+        run: python run_cycle.py 2>&1 | tee cycle-output.log
+        # tee writes to both stdout (visible in Actions UI) and the log file.
+        # The log file is uploaded as an artifact below.
+
+      - name: Upload cycle log artifact
+        # Always upload, even if the cycle step failed, so you can read
+        # what happened. The artifact is kept for 7 days.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cycle-log-${{ github.run_id }}
+          path: cycle-output.log
+          if-no-files-found: warn
+          retention-days: 7
