@@ -41,6 +41,24 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
+# Streamlit Cloud secrets bridge (rule 48)
+# Streamlit Cloud puts secrets in st.secrets but does NOT automatically inject
+# them into os.environ. storage.py reads os.environ at import time, so we
+# bridge here — BEFORE the edgedash imports below.
+# Names are logged; values are never printed or logged.
+# ---------------------------------------------------------------------------
+try:
+    _SECRETS_TO_BRIDGE = ["DATABASE_URL", "GEMINI_API_KEY", "GITHUB_REPO_URL"]
+    for _secret_name in _SECRETS_TO_BRIDGE:
+        if _secret_name not in os.environ:
+            _val = st.secrets.get(_secret_name)
+            if _val:
+                os.environ[_secret_name] = str(_val)
+                logger.info("Bridged %s from st.secrets to os.environ", _secret_name)
+except Exception:
+    pass  # st.secrets unavailable locally — fine, os.environ already has what's needed
+
+# ---------------------------------------------------------------------------
 # Safe imports — import failures are caught and shown gracefully (rule 50)
 # ---------------------------------------------------------------------------
 
@@ -217,12 +235,36 @@ st.caption(
 # Database connectivity
 db_ok, db_msg = _check_db(cfg)
 if not db_ok:
+    # Diagnose: print which env var names are present (never values)
+    _env_names = [k for k in os.environ if k in (
+        "DATABASE_URL", "GEMINI_API_KEY", "GITHUB_REPO_URL",
+        "STREAMLIT_SECRETS_DATABASE_URL",
+    )]
+    _has_db_url = "DATABASE_URL" in os.environ
+    _has_st_secrets = hasattr(st, "secrets") and "DATABASE_URL" in (st.secrets or {})
+
     st.error(
         "**Database not configured or unreachable.**\n\n"
         "If you are running this on Streamlit Cloud, add `DATABASE_URL` "
-        "to your app's Secrets. If you are running locally, check that "
-        "`edgedash.db` exists or run `python run_cycle.py` first."
+        "to your app's Secrets (Settings → Secrets). "
+        "If you are running locally, check that `edgedash.db` exists or "
+        "run `python run_cycle.py` first."
     )
+
+    # Diagnostic block — variable names only, zero values shown
+    with st.expander("Startup diagnostic (no secret values shown)"):
+        st.code(
+            f"DATABASE_URL in os.environ : {_has_db_url}\n"
+            f"DATABASE_URL in st.secrets : {_has_st_secrets}\n"
+            f"Env vars present           : {sorted(_env_names)}\n"
+            f"storage backend detected   : {storage._BACKEND}\n"
+            f"Connection error           : {db_msg}"
+        )
+        st.caption(
+            "If DATABASE_URL shows False but you set it in Streamlit Secrets, "
+            "the secret name must be exactly DATABASE_URL (case-sensitive, no quotes). "
+            "Also confirm the value includes ?sslmode=require for Supabase."
+        )
     st.caption("Details are in the server logs. No traceback is shown here.")
     st.stop()
 

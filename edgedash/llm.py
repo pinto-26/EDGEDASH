@@ -352,9 +352,9 @@ def _run_check() -> None:
             config=cfg,
         )
         print(f"Response : {result}")
-        print("✓  LLM connection working.")
+        print("OK  LLM connection working.")
     except LLMError as exc:
-        print(f"✗  LLM check failed: {exc}")
+        print(f"FAIL  LLM check failed: {exc}")
         raise SystemExit(1)
 
 

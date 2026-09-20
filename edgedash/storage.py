@@ -30,6 +30,13 @@ logger = logging.getLogger(__name__)
 
 _DATABASE_URL: str | None = os.environ.get("DATABASE_URL")
 
+# Supabase and most hosted Postgres require SSL. If the URL doesn't already
+# include sslmode, append ?sslmode=require automatically.
+if _DATABASE_URL and "sslmode" not in _DATABASE_URL:
+    _DATABASE_URL = _DATABASE_URL.rstrip("?&") + (
+        "?sslmode=require" if "?" not in _DATABASE_URL else "&sslmode=require"
+    )
+
 if _DATABASE_URL:
     import psycopg2
     import psycopg2.extras
@@ -124,6 +131,13 @@ def _scalar(row: Any) -> Any:
     if isinstance(row, dict):
         return next(iter(row.values()))
     return row[0]
+
+
+def _bool_val(v: Any) -> bool:
+    """Postgres returns real bools; SQLite returns 0/1 integers."""
+    if isinstance(v, bool):
+        return v
+    return bool(v)
     """Postgres returns real bools; SQLite returns 0/1 integers."""
     if isinstance(v, bool):
         return v

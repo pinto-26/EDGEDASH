@@ -1,5 +1,5 @@
 """
-diagnose.py — read-only diagnostic tool for inspecting DB state.
+diagnose.py -- read-only diagnostic tool for inspecting DB state.
 
 Usage:
     python -m edgedash.diagnose --scores     print scored listings table + distribution
@@ -26,9 +26,9 @@ def _connect(path: str) -> sqlite3.Connection:
 
 
 def _banner(text: str) -> None:
-    print(f"\n{'─' * _W}")
+    print(f"\n{'-' * _W}")
     print(f"  {text}")
-    print(f"{'─' * _W}")
+    print(f"{'-' * _W}")
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +63,7 @@ def cmd_scores(db_path: str, min_score: int = 0) -> None:
         score="SCORE", title="TITLE", company="COMPANY",
         loc="LOCATION", reason="REASON"
     ))
-    print(f"  {'─'*5}  {'─'*28}  {'─'*18}  {'─'*14}  {'─'*24}")
+    print(f"  {'-'*5}  {'-'*28}  {'-'*18}  {'-'*14}  {'-'*24}")
 
     for r in rows:
         title   = (r["title"]    or "")[:28]
@@ -82,11 +82,11 @@ def cmd_scores(db_path: str, min_score: int = 0) -> None:
     mean   = round(sum(scores) / len(scores))
     spread = hi - lo
 
-    print(f"\n  {'─' * (_W - 2)}")
+    print(f"\n  {'-' * (_W - 2)}")
     print(f"  count={len(scores)}  min={lo}  max={hi}  mean={mean}  spread={spread}", end="")
     if spread < 10:
-        print("  ⚠  SUSPECT — spread < 10", end="")
-    print(f"\n{'─' * _W}\n")
+        print("  SUSPECT -- spread < 10", end="")
+    print(f"\n{'-' * _W}\n")
 
 
 # ---------------------------------------------------------------------------
@@ -110,13 +110,13 @@ def cmd_cycles(db_path: str, limit: int = 20) -> None:
         return
 
     for r in rows:
-        icon = "✓" if r["status"] in ("ok",) else "⚠"
+        icon = "OK" if r["status"] in ("ok",) else "!!"
         ts   = (r["started_at"] or "")[:19].replace("T", " ")
         note = (r["notes"] or "")[:60]
         print(f"  {icon} [{r['id']:>4}] {ts}  {r['agent']:<28}  "
               f"touched={r['records_touched']:>3}  {note}")
 
-    print(f"{'─' * _W}\n")
+    print(f"{'-' * _W}\n")
 
 
 # ---------------------------------------------------------------------------
@@ -148,10 +148,10 @@ def cmd_gaps(db_path: str) -> None:
         return
 
     for skill, count in sorted(freq.items(), key=lambda x: -x[1])[:30]:
-        bar = "█" * count
+        bar = "#" * count
         print(f"  {skill:<30} {bar} {count}")
 
-    print(f"{'─' * _W}\n")
+    print(f"{'-' * _W}\n")
 
 
 # ---------------------------------------------------------------------------
